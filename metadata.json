@@ -1,0 +1,6 @@
+{
+  "name": "SEQUOIA — Glosario Interactivo de Logística y Transporte",
+  "description": "Documentación interactiva estilo Notion del glosario oficial GTT / NCS (DOC_GOCV_003) con los 121 términos, definiciones, bloques callout, toggles y buscador en tiempo real.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
