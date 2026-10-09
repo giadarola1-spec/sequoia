@@ -85,27 +85,28 @@ export default function MemorizeLab({
     setSelectedOptionId(null);
   }, [currentTerm?.id, deckIndex]);
 
+  const handleNextQuestion = useCallback(() => {
+    setSelectedOptionId(null);
+    setDeckIndex(prev => (prev + 1 < deckIds.length ? prev + 1 : 0));
+  }, [deckIds.length]);
+
   const handleSelectQuizOption = useCallback(
     (optionId: string) => {
       if (selectedOptionId || !currentTerm) return;
-      setSelectedOptionId(optionId);
       setQuizTotalCount(prev => prev + 1);
       if (optionId === currentTerm.id) {
         setQuizStreak(prev => prev + 1);
         setQuizCorrectCount(prev => prev + 1);
         onUpdateMastery(currentTerm.id, 'mastered');
+        handleNextQuestion();
       } else {
+        setSelectedOptionId(optionId);
         setQuizStreak(0);
         onUpdateMastery(currentTerm.id, 'learning');
       }
     },
-    [selectedOptionId, currentTerm, onUpdateMastery]
+    [selectedOptionId, currentTerm, onUpdateMastery, handleNextQuestion]
   );
-
-  const handleNextQuestion = useCallback(() => {
-    setSelectedOptionId(null);
-    setDeckIndex(prev => (prev + 1 < deckIds.length ? prev + 1 : 0));
-  }, [deckIds.length]);
 
   const handleShuffleDeck = () => {
     setDeckIds(shuffleArray(studyPool.map(t => t.id)));
@@ -147,12 +148,48 @@ export default function MemorizeLab({
   }, [selectedOptionId, quizOptions, handleSelectQuizOption, handleNextQuestion, isExpandedView]);
 
   const redactTermFromText = (text: string, term: GlossaryTerm) => {
-    const escapedTerm = term.term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    let result = text.replace(new RegExp(escapedTerm, 'gi'), '[TERM]');
-    if (term.acronym) {
-      const escapedAcronym = term.acronym.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      result = result.replace(new RegExp(`\\b${escapedAcronym}\\b`, 'gi'), '[ACRONYM]');
+    let result = text.trim();
+
+    // 1. If the text starts with a "Term / Title: " prefix before the first sentence ends, strip it
+    const colonIdx = result.indexOf(':');
+    const periodIdx = result.indexOf('.');
+    if (
+      colonIdx > 0 &&
+      colonIdx < 120 &&
+      (periodIdx === -1 || colonIdx < periodIdx)
+    ) {
+      result = result.slice(colonIdx + 1).trim();
     }
+
+    // 2. Build list of phrases/words to redact so the term is never given away
+    const baseWithoutParens = term.term.replace(/\s*\([^)]*\)\s*/g, '').trim();
+    const insideParensMatch = term.term.match(/\(([^)]+)\)/);
+    const insideParens = insideParensMatch ? insideParensMatch[1].trim() : '';
+
+    const candidates = [
+      term.term,
+      baseWithoutParens,
+      insideParens,
+      term.acronym || '',
+      baseWithoutParens.replace(/-/g, ' ')
+    ]
+      .map(s => s.trim())
+      .filter(s => s.length >= 2);
+
+    // Sort longest first so full phrases are replaced before substrings
+    const uniqueCandidates = Array.from(new Set(candidates)).sort(
+      (a, b) => b.length - a.length
+    );
+
+    for (const candidate of uniqueCandidates) {
+      const escaped = candidate.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      result = result.replace(new RegExp(escaped, 'gi'), '___');
+    }
+
+    if (result.length > 0) {
+      result = result.charAt(0).toUpperCase() + result.slice(1);
+    }
+
     return result;
   };
 

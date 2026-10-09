@@ -22,6 +22,10 @@ body {
   letter-spacing: 0.005em;
 }
 
+.font-gabarito {
+  font-family: "Gabarito", sans-serif;
+}
+
 /* Custom subtle Notion dark scrollbar */
 ::-webkit-scrollbar {
   width: 8px;

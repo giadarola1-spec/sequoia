@@ -22,6 +22,7 @@ import {
   NotionColor
 } from './data/glossaryData';
 import MemorizeLab, { MasteryStatus } from './components/MemorizeLab';
+import { performSmartSearch } from './utils/smartSearch';
 
 const TAG_CLASS_MAP: Record<NotionColor, string> = {
   yellow: 'notion-tag-yellow',
@@ -94,6 +95,7 @@ export default function App() {
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [transitionDirection, setTransitionDirection] = useState<'next' | 'prev' | 'select'>('select');
+  const [highlightedSearchIndex, setHighlightedSearchIndex] = useState(0);
 
   const modalSearchRef = useRef<HTMLInputElement>(null);
   const mainContentRef = useRef<HTMLElement>(null);
@@ -107,27 +109,18 @@ export default function App() {
     return counts;
   }, []);
 
-  // Filtered list of terms based on active search, category, and letter filters
-  const filteredTerms = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    return GLOSSARY_TERMS.filter(item => {
-      if (selectedCategory !== 'all' && item.category !== selectedCategory) {
-        return false;
-      }
-      if (selectedLetter !== 'all' && item.letter !== selectedLetter) {
-        return false;
-      }
-      if (!q) return true;
-      const inTerm = item.term.toLowerCase().includes(q);
-      const inAcronym = item.acronym?.toLowerCase().includes(q) ?? false;
-      const inCallout = item.calloutEs.toLowerCase().includes(q);
-      const inDefEn = item.definitionEn.toLowerCase().includes(q);
-      const inExpEs = item.explanationEs.toLowerCase().includes(q);
-      const inDetails = item.details.some(d => d.toLowerCase().includes(q));
-      const inCat = CATEGORIES[item.category]?.name.toLowerCase().includes(q) ?? false;
-      return inTerm || inAcronym || inCallout || inDefEn || inExpEs || inDetails || inCat;
-    });
+  // Smart ranked search results (accent-insensitive, punctuation-insensitive, multi-word, synonyms & fuzzy typo-tolerant)
+  const smartSearchResults = useMemo(() => {
+    return performSmartSearch(GLOSSARY_TERMS, searchQuery, selectedCategory, selectedLetter);
   }, [searchQuery, selectedCategory, selectedLetter]);
+
+  const filteredTerms = useMemo(() => {
+    return smartSearchResults.map(r => r.term);
+  }, [smartSearchResults]);
+
+  useEffect(() => {
+    setHighlightedSearchIndex(0);
+  }, [searchQuery, selectedCategory, selectedLetter, isSearchModalOpen]);
 
   // Keep activeTermId synchronized when filters change
   useEffect(() => {
@@ -237,14 +230,24 @@ export default function App() {
   };
 
   const formatDefinitionText = (text: string) => {
-    const trimmed = text.trim();
+    let trimmed = text.trim();
+    if (!trimmed) return '';
+    const colonIdx = trimmed.indexOf(':');
+    const periodIdx = trimmed.indexOf('.');
+    if (
+      colonIdx > 0 &&
+      colonIdx < 120 &&
+      (periodIdx === -1 || colonIdx < periodIdx)
+    ) {
+      trimmed = trimmed.slice(colonIdx + 1).trim();
+    }
     if (!trimmed) return '';
     return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
   };
 
   const handleCopyDefinition = (term: GlossaryTerm) => {
     const categoryName = CATEGORIES[term.category]?.name || term.category;
-    const textToCopy = `${term.term}${term.acronym && term.acronym !== term.term ? ` (${term.acronym})` : ''} — [${categoryName} · Page ${term.page}]\n\nOfficial Definition (PDF): ${formatDefinitionText(term.definitionEn)}\n\nKey Summary: ${term.calloutEs}\n\nExplanation (ES): ${term.explanationEs}`;
+    const textToCopy = `${term.term}${term.acronym && term.acronym !== term.term ? ` (${term.acronym})` : ''} — [${categoryName} · Page ${term.page}]\n\nOfficial Definition (PDF): ${formatDefinitionText(term.definitionEn)}\n\nKey Summary: ${formatDefinitionText(term.calloutEs)}\n\nExplanation (ES): ${formatDefinitionText(term.explanationEs)}`;
     navigator.clipboard.writeText(textToCopy);
     setCopiedId(term.id);
     setTimeout(() => {
@@ -287,9 +290,9 @@ export default function App() {
               setActiveTermId(GLOSSARY_TERMS[0].id);
               setActiveView('docs');
             }}
-            className="group flex items-center gap-2 text-[13px] font-bold tracking-[0.14em] text-[#e6e6e4] focus:outline-none"
+            className="group flex items-center gap-2 text-[15px] font-bold tracking-[0.12em] text-[#e6e6e4] focus:outline-none"
           >
-            <span>SEQUOIA</span>
+            <span className="font-gabarito">SEQUOIA</span>
             <svg
               width="15"
               height="15"
@@ -319,7 +322,7 @@ export default function App() {
           </button>
         </div>
 
-        {/* Real-time Search Input */}
+        {/* Real-time Smart Search Input */}
         <div className="border-b border-[rgba(255,255,255,0.09)] p-2.5 space-y-2">
           <div className="flex items-center rounded border border-[rgba(255,255,255,0.14)] bg-[#191919] px-2.5 py-1.5 focus-within:border-[rgba(255,255,255,0.32)] transition-colors">
             <Search className="mr-2 h-3.5 w-3.5 shrink-0 text-[#9b9a97]" />
@@ -327,7 +330,28 @@ export default function App() {
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Filter documentation..."
+              onKeyDown={e => {
+                if (e.key === 'ArrowDown' && smartSearchResults.length > 0) {
+                  e.preventDefault();
+                  const nextIdx = (highlightedSearchIndex + 1) % Math.min(smartSearchResults.length, 25);
+                  setHighlightedSearchIndex(nextIdx);
+                  setTransitionDirection('select');
+                  setActiveTermId(smartSearchResults[nextIdx].term.id);
+                  setActiveView('docs');
+                } else if (e.key === 'ArrowUp' && smartSearchResults.length > 0) {
+                  e.preventDefault();
+                  const maxLen = Math.min(smartSearchResults.length, 25);
+                  const prevIdx = (highlightedSearchIndex - 1 + maxLen) % maxLen;
+                  setHighlightedSearchIndex(prevIdx);
+                  setTransitionDirection('select');
+                  setActiveTermId(smartSearchResults[prevIdx].term.id);
+                  setActiveView('docs');
+                } else if (e.key === 'Enter' && smartSearchResults[highlightedSearchIndex]) {
+                  e.preventDefault();
+                  handleSelectTerm(smartSearchResults[highlightedSearchIndex].term.id, true);
+                }
+              }}
+              placeholder="Smart search (term, ES/EN, p.12)..."
               className="w-full bg-transparent text-xs text-[#e6e6e4] placeholder-[#9b9a97] focus:outline-none"
             />
             {searchQuery ? (
@@ -380,6 +404,57 @@ export default function App() {
 
         {/* Accordion Navigation with Stable Scroll (Zero Layout Shift) */}
         <div className="stable-scroll flex-1 overflow-y-auto px-2 py-2.5 space-y-2">
+          {/* Instant Smart Search Results Panel when user is typing in Sidebar */}
+          {searchQuery.trim() !== '' && (
+            <div className="rounded border border-[rgba(255,255,255,0.14)] bg-[#191919] p-1.5 space-y-1">
+              <div className="flex items-center justify-between px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[#9b9a97]">
+                <span>Smart Matches ({smartSearchResults.length})</span>
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="text-[#f2c97d] hover:underline focus:outline-none"
+                >
+                  Clear
+                </button>
+              </div>
+              {smartSearchResults.length === 0 ? (
+                <div className="px-2 py-3 text-center text-[11px] text-[#9b9a97]">
+                  No matches for &ldquo;{searchQuery}&rdquo;
+                </div>
+              ) : (
+                <div className="max-h-60 space-y-0.5 overflow-y-auto stable-scroll">
+                  {smartSearchResults.slice(0, 25).map(({ term, matchBadge }, idx) => {
+                    const isCurrent =
+                      (activeTerm?.id === term.id && activeView === 'docs') ||
+                      idx === highlightedSearchIndex;
+                    return (
+                      <button
+                        type="button"
+                        key={term.id}
+                        onMouseEnter={() => setHighlightedSearchIndex(idx)}
+                        onClick={() => {
+                          setHighlightedSearchIndex(idx);
+                          handleSelectTerm(term.id, false);
+                        }}
+                        className={`flex w-full items-center justify-between gap-2 rounded px-2 py-1.5 text-left text-xs transition-colors focus:outline-none ${
+                          isCurrent
+                            ? 'bg-[rgba(255,255,255,0.12)] font-semibold text-[#e6e6e4]'
+                            : 'text-[#9b9a97] hover:bg-[rgba(255,255,255,0.06)] hover:text-[#e6e6e4]'
+                        }`}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-[#e6e6e4]">{term.term}</div>
+                          <div className="truncate text-[10px] text-[#9b9a97]/80">
+                            {matchBadge} · p.{term.page}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
           {/* 1. Filter by Letter (Initially closed) */}
           <div className="rounded border border-[rgba(255,255,255,0.07)] bg-[#1c1c1c]">
             <div className="flex h-8 w-full items-center justify-between px-2.5">
@@ -785,10 +860,10 @@ export default function App() {
                     <div className="space-y-2.5 border-t border-[rgba(255,255,255,0.07)] pt-3.5">
                       <p className="text-sm md:text-[15px] leading-relaxed text-[#a6b4c0]">
                         <span className="font-semibold text-[#bfd0de]">Key summary: </span>
-                        {activeTerm.calloutEs}
+                        {formatDefinitionText(activeTerm.calloutEs)}
                       </p>
                       <p className="text-sm leading-relaxed text-[#9b9a97]">
-                        {activeTerm.explanationEs}
+                        {formatDefinitionText(activeTerm.explanationEs)}
                       </p>
                     </div>
                   </div>
@@ -923,11 +998,11 @@ export default function App() {
       {/* ================= QUICK SEARCH MODAL (CTRL+K) ================= */}
       {isSearchModalOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-start justify-center bg-black/65 pt-16 px-4 backdrop-blur-[1px]"
+          className="fixed inset-0 z-50 flex items-start justify-center bg-black/65 pt-14 px-4 backdrop-blur-[1px]"
           onClick={() => setIsSearchModalOpen(false)}
         >
           <div
-            className="w-full max-w-xl overflow-hidden rounded-lg border border-[rgba(255,255,255,0.16)] bg-[#202020] shadow-2xl"
+            className="w-full max-w-2xl overflow-hidden rounded-xl border border-[rgba(255,255,255,0.16)] bg-[#202020] shadow-2xl"
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-center border-b border-[rgba(255,255,255,0.09)] px-4 py-3">
@@ -937,49 +1012,129 @@ export default function App() {
                 type="text"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                placeholder="Search by term, acronym, or definition..."
+                onKeyDown={e => {
+                  const maxResults = Math.min(smartSearchResults.length, 40);
+                  if (e.key === 'ArrowDown' && maxResults > 0) {
+                    e.preventDefault();
+                    setHighlightedSearchIndex(prev => (prev + 1) % maxResults);
+                  } else if (e.key === 'ArrowUp' && maxResults > 0) {
+                    e.preventDefault();
+                    setHighlightedSearchIndex(prev => (prev - 1 + maxResults) % maxResults);
+                  } else if (e.key === 'Enter' && smartSearchResults[highlightedSearchIndex]) {
+                    e.preventDefault();
+                    handleSelectTerm(smartSearchResults[highlightedSearchIndex].term.id, true);
+                  }
+                }}
+                placeholder="Smart search: term, acronym (pod, hos), Spanish/English concept, or 'page 12'..."
                 className="w-full bg-transparent text-sm text-[#e6e6e4] placeholder-[#9b9a97] focus:outline-none"
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="mr-2 rounded p-1 text-[#9b9a97] hover:text-[#e6e6e4]"
+                  title="Clear search"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => setIsSearchModalOpen(false)}
-                className="ml-2 rounded border border-[rgba(255,255,255,0.12)] px-1.5 py-0.5 text-[11px] text-[#9b9a97] hover:text-[#e6e6e4]"
+                className="rounded border border-[rgba(255,255,255,0.12)] px-1.5 py-0.5 text-[11px] text-[#9b9a97] hover:text-[#e6e6e4]"
               >
                 ESC
               </button>
             </div>
 
+            {/* Quick Category Filter Bar inside Modal */}
+            <div className="flex flex-wrap items-center gap-1.5 border-b border-[rgba(255,255,255,0.07)] bg-[#191919] px-4 py-2">
+              <button
+                type="button"
+                onClick={() => setSelectedCategory('all')}
+                className={`rounded px-2 py-0.5 text-[11px] font-medium transition-colors focus:outline-none ${
+                  selectedCategory === 'all'
+                    ? 'bg-[#e6e6e4] text-[#191919] font-semibold'
+                    : 'bg-[#252525] text-[#9b9a97] hover:text-[#e6e6e4]'
+                }`}
+              >
+                All Modules
+              </button>
+              {Object.values(CATEGORIES).map(cat => (
+                <button
+                  type="button"
+                  key={cat.id}
+                  onClick={() =>
+                    setSelectedCategory(prev => (prev === cat.id ? 'all' : cat.id))
+                  }
+                  className={`rounded px-2 py-0.5 text-[11px] font-medium transition-colors focus:outline-none ${
+                    selectedCategory === cat.id
+                      ? 'bg-[#e6e6e4] text-[#191919] font-semibold'
+                      : 'bg-[#252525] text-[#9b9a97] hover:text-[#e6e6e4]'
+                  }`}
+                >
+                  {cat.shortName}
+                </button>
+              ))}
+            </div>
+
             <div className="stable-scroll max-h-96 overflow-y-auto p-2">
-              <div className="px-2.5 py-1 text-[11px] font-semibold text-[#9b9a97]">
-                RESULTS ({filteredTerms.length} of {GLOSSARY_TERMS.length})
+              <div className="flex items-center justify-between px-2.5 py-1 text-[11px] font-semibold text-[#9b9a97]">
+                <span>
+                  {searchQuery.trim()
+                    ? `RANKED RESULTS (${smartSearchResults.length} of ${GLOSSARY_TERMS.length})`
+                    : `ALL TERMS (${smartSearchResults.length})`}
+                </span>
+                <span className="text-[10px] font-normal text-[#9b9a97]/70">
+                  ↑↓ to navigate · Enter to open
+                </span>
               </div>
-              {filteredTerms.length === 0 ? (
-                <div className="py-8 text-center text-xs text-[#9b9a97]">
-                  No matches found for &ldquo;{searchQuery}&rdquo;
+              {smartSearchResults.length === 0 ? (
+                <div className="py-8 text-center text-xs text-[#9b9a97] space-y-2">
+                  <p>No matches found for &ldquo;{searchQuery}&rdquo;</p>
+                  <p className="text-[11px] text-[#9b9a97]/70">
+                    Try searching by acronym (e.g. <code>pod</code>, <code>hos</code>, <code>bol</code>), Spanish or English keywords, or page number (e.g. <code>page 12</code>).
+                  </p>
                 </div>
               ) : (
-                filteredTerms.slice(0, 40).map(term => {
+                smartSearchResults.slice(0, 40).map(({ term, matchBadge, snippet }, idx) => {
                   const cat = CATEGORIES[term.category];
+                  const isHighlighted = idx === highlightedSearchIndex;
                   return (
                     <button
                       type="button"
                       key={term.id}
+                      onMouseEnter={() => setHighlightedSearchIndex(idx)}
                       onClick={() => handleSelectTerm(term.id, true)}
-                      className="flex w-full items-start justify-between gap-3 rounded px-3 py-2 text-left hover:bg-[rgba(255,255,255,0.06)] transition-colors focus:outline-none"
+                      className={`flex w-full items-start justify-between gap-3 rounded-lg px-3 py-2.5 text-left transition-colors focus:outline-none ${
+                        isHighlighted
+                          ? 'bg-[rgba(255,255,255,0.09)]'
+                          : 'hover:bg-[rgba(255,255,255,0.05)]'
+                      }`}
                     >
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-semibold text-[#e6e6e4]">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-xs font-bold text-[#e6e6e4]">
                             {term.term}
                           </span>
+                          {term.acronym && term.acronym !== term.term && (
+                            <code className="rounded bg-[#252525] px-1.5 py-0.2 font-mono text-[10px] text-[#9b9a97]">
+                              {term.acronym}
+                            </code>
+                          )}
                           <span
                             className={`rounded px-1.5 py-0.2 text-[10px] font-medium ${TAG_CLASS_MAP[cat.color]}`}
                           >
                             {cat.shortName}
                           </span>
+                          {searchQuery.trim() !== '' && (
+                            <span className="rounded border border-[rgba(255,255,255,0.1)] bg-[#191919] px-1.5 py-0.2 text-[10px] text-[#7fd1a8]">
+                              {matchBadge}
+                            </span>
+                          )}
                         </div>
-                        <p className="mt-0.5 truncate text-xs text-[#9b9a97]">
-                          {term.calloutEs}
+                        <p className="mt-1 truncate text-xs text-[#9b9a97]">
+                          {formatDefinitionText(snippet)}
                         </p>
                       </div>
                       <span className="shrink-0 text-[11px] tabular-nums text-[#9b9a97]">
