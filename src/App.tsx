@@ -93,6 +93,7 @@ export default function App() {
 
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [transitionDirection, setTransitionDirection] = useState<'next' | 'prev' | 'select'>('select');
 
   const modalSearchRef = useRef<HTMLInputElement>(null);
   const mainContentRef = useRef<HTMLElement>(null);
@@ -179,8 +180,10 @@ export default function App() {
       if (tag === 'INPUT' || tag === 'TEXTAREA' || isSearchModalOpen || activeView !== 'docs') return;
 
       if (e.key === 'ArrowLeft' && prevTerm) {
+        setTransitionDirection('prev');
         setActiveTermId(prevTerm.id);
       } else if (e.key === 'ArrowRight' && nextTerm) {
+        setTransitionDirection('next');
         setActiveTermId(nextTerm.id);
       }
     };
@@ -214,6 +217,7 @@ export default function App() {
       if (!inFiltered) setSearchQuery('');
     }
 
+    setTransitionDirection('select');
     setActiveTermId(target.id);
     setActiveView('docs');
     // Only auto-open sidebar category if jumping from related link or search modal
@@ -691,16 +695,14 @@ export default function App() {
           id="top"
           className="stable-scroll flex-1 overflow-y-auto px-5 py-6 md:px-10 lg:px-12"
         >
-          <div className="mx-auto max-w-[1100px] pb-8">
+          <div className="mx-auto max-w-[1140px] pb-8">
             {activeView === 'memorize' ? (
-              <div className="mx-auto max-w-[780px]">
-                <MemorizeLab
-                  filteredTerms={filteredTerms}
-                  masteryMap={masteryMap}
-                  onUpdateMastery={handleUpdateMastery}
-                  onJumpToTermDoc={termId => handleSelectTerm(termId, true)}
-                />
-              </div>
+              <MemorizeLab
+                filteredTerms={filteredTerms}
+                masteryMap={masteryMap}
+                onUpdateMastery={handleUpdateMastery}
+                onJumpToTermDoc={termId => handleSelectTerm(termId, true)}
+              />
             ) : filteredTerms.length === 0 || !activeTerm ? (
               <div className="rounded-lg border border-[rgba(255,255,255,0.09)] bg-[#202020] p-10 text-center">
                 <h3 className="text-sm font-semibold text-[#e6e6e4]">
@@ -720,7 +722,10 @@ export default function App() {
               </div>
             ) : (
               /* ================= ACTIVE OBJECT / TERM DOCUMENTATION ================= */
-              <article className="space-y-5">
+              <article
+                key={activeTerm.id}
+                className={`space-y-5 term-transition-${transitionDirection}`}
+              >
                 {/* Compact Header: Title, Acronym, Breadcrumbs & Copy Button */}
                 <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[rgba(255,255,255,0.09)] pb-4">
                   <div className="space-y-1.5">
@@ -841,7 +846,10 @@ export default function App() {
               {prevTerm ? (
                 <button
                   type="button"
-                  onClick={() => setActiveTermId(prevTerm.id)}
+                  onClick={() => {
+                    setTransitionDirection('prev');
+                    setActiveTermId(prevTerm.id);
+                  }}
                   className="group flex min-w-0 flex-1 max-w-[340px] items-center gap-3 rounded-lg border border-[rgba(255,255,255,0.12)] bg-[#202020] px-3.5 py-2 text-left hover:border-[rgba(255,255,255,0.28)] hover:bg-[#252525] transition-colors focus:outline-none"
                 >
                   <ChevronLeft className="h-4 w-4 shrink-0 text-[#9b9a97] group-hover:text-[#e6e6e4] transition-transform duration-150 group-hover:-translate-x-0.5" />
@@ -878,7 +886,10 @@ export default function App() {
               {nextTerm ? (
                 <button
                   type="button"
-                  onClick={() => setActiveTermId(nextTerm.id)}
+                  onClick={() => {
+                    setTransitionDirection('next');
+                    setActiveTermId(nextTerm.id);
+                  }}
                   className="group flex min-w-0 flex-1 max-w-[340px] items-center justify-end gap-3 rounded-lg border border-[rgba(255,255,255,0.12)] bg-[#202020] px-3.5 py-2 text-right hover:border-[rgba(255,255,255,0.28)] hover:bg-[#252525] transition-colors focus:outline-none"
                 >
                   <div className="min-w-0 flex-1">
