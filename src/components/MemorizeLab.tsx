@@ -162,29 +162,29 @@ export default function MemorizeLab({
     <div
       className={
         isExpandedView
-          ? 'fixed inset-0 z-50 flex flex-col justify-between overflow-y-auto bg-[#191919] p-6 sm:p-10 lg:p-14'
-          : 'mx-auto w-full max-w-[920px] rounded-xl border border-[rgba(255,255,255,0.12)] bg-[#202020] p-6 sm:p-7 lg:p-8 space-y-5'
+          ? 'fixed inset-0 z-50 flex flex-col justify-between overflow-hidden bg-[#191919] px-6 py-5 sm:px-10 sm:py-7 lg:px-14 lg:py-8'
+          : 'mx-auto flex w-full max-w-[1100px] flex-col justify-between rounded-xl border border-[rgba(255,255,255,0.12)] bg-[#202020] p-5 sm:p-6 lg:p-7'
       }
     >
       {/* Top Header: Memorize Lab Title, Stats, Prompt Selector & Expanded View Button */}
       <div
-        className={`flex flex-wrap items-center justify-between gap-4 border-b border-[rgba(255,255,255,0.09)] ${
-          isExpandedView ? 'pb-6' : 'pb-5'
+        className={`flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[rgba(255,255,255,0.09)] ${
+          isExpandedView ? 'pb-4' : 'pb-3.5'
         }`}
       >
-        <div className="flex flex-wrap items-baseline gap-4 sm:gap-6">
+        <div className="flex flex-wrap items-baseline gap-4">
           <h1
             className={`font-bold tracking-tight text-[#e6e6e4] ${
               isExpandedView
-                ? 'text-3xl sm:text-4xl lg:text-5xl'
-                : 'text-2xl sm:text-3xl lg:text-4xl'
+                ? 'text-2xl sm:text-3xl lg:text-4xl'
+                : 'text-xl sm:text-2xl lg:text-3xl'
             }`}
           >
             Memorize Lab
           </h1>
 
           <div
-            className={`flex flex-wrap items-center gap-3 ${
+            className={`flex flex-wrap items-center gap-2.5 ${
               isExpandedView ? 'text-sm sm:text-base' : 'text-xs sm:text-sm'
             }`}
           >
@@ -208,7 +208,7 @@ export default function MemorizeLab({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2">
           {/* Prompt Source Selector */}
           <div
             className={`flex items-center gap-1 rounded-lg border border-[rgba(255,255,255,0.12)] bg-[#191919] p-1 ${
@@ -254,7 +254,7 @@ export default function MemorizeLab({
             type="button"
             onClick={handleShuffleDeck}
             title="Shuffle questions"
-            className={`flex items-center gap-1.5 rounded-lg border border-[rgba(255,255,255,0.12)] bg-[#191919] px-3 py-1.5 font-medium text-[#9b9a97] hover:text-[#e6e6e4] transition-colors focus:outline-none ${
+            className={`flex items-center gap-1.5 rounded-lg border border-[rgba(255,255,255,0.12)] bg-[#191919] px-2.5 py-1.5 font-medium text-[#9b9a97] hover:text-[#e6e6e4] transition-colors focus:outline-none ${
               isExpandedView ? 'text-xs sm:text-sm' : 'text-xs'
             }`}
           >
@@ -277,7 +277,7 @@ export default function MemorizeLab({
           <button
             type="button"
             onClick={() => setIsExpandedView(prev => !prev)}
-            className={`flex items-center gap-1.5 rounded-lg border px-3.5 py-1.5 font-semibold transition-colors focus:outline-none ${
+            className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 font-semibold transition-colors focus:outline-none ${
               isExpandedView
                 ? 'border-[#e6e6e4] bg-[#e6e6e4] text-[#191919] text-xs sm:text-sm'
                 : 'border-[rgba(255,255,255,0.2)] bg-[#252525] text-[#e6e6e4] hover:border-[rgba(255,255,255,0.4)] text-xs'
@@ -298,44 +298,109 @@ export default function MemorizeLab({
         </div>
       </div>
 
-      {/* Main Quiz Stage: Prompt + Options + Instant Breakdown */}
+      {/* Horizontal 2-Column Stage (Fixed height so Next button never shifts vertically) */}
       <div
         key={currentTerm.id}
-        className={`term-transition-select my-auto flex flex-col justify-center ${
-          isExpandedView ? 'space-y-8 py-6' : 'space-y-6 py-2'
+        className={`term-transition-select grid grid-cols-1 lg:grid-cols-12 items-stretch ${
+          isExpandedView
+            ? 'my-4 flex-1 gap-6 lg:gap-8 overflow-hidden'
+            : 'my-4 gap-5 lg:gap-6 lg:h-[360px]'
         }`}
       >
-        {/* Question Prompt */}
-        <div className="space-y-3">
-          <div
-            className={`font-semibold uppercase tracking-wider text-[#9b9a97] ${
-              isExpandedView ? 'text-xs sm:text-sm' : 'text-xs'
-            }`}
-          >
-            Which logistics term matches this description?
+        {/* Left Column: Question Prompt + Fixed-Space Answer Feedback */}
+        <div className="lg:col-span-7 flex flex-col justify-between gap-3 min-h-0">
+          <div className="flex flex-1 flex-col rounded-xl border border-[rgba(255,255,255,0.1)] bg-[#191919] p-5 sm:p-6 min-h-0">
+            <div
+              className={`mb-2 shrink-0 font-semibold uppercase tracking-wider text-[#9b9a97] ${
+                isExpandedView ? 'text-xs sm:text-sm' : 'text-[11px]'
+              }`}
+            >
+              Which logistics term matches this description?
+            </div>
+            <div
+              className={`stable-scroll flex-1 overflow-y-auto pr-1 text-[#e6e6e4] ${
+                isExpandedView
+                  ? 'text-xl sm:text-2xl lg:text-3xl leading-relaxed font-medium'
+                  : 'text-base sm:text-lg lg:text-[19px] leading-relaxed'
+              }`}
+            >
+              {promptType === 'summary_en' &&
+                redactTermFromText(currentTerm.calloutEs, currentTerm)}
+              {promptType === 'def_en' &&
+                redactTermFromText(currentTerm.definitionEn, currentTerm)}
+              {promptType === 'explanation_es' &&
+                redactTermFromText(currentTerm.explanationEs, currentTerm)}
+            </div>
           </div>
+
+          {/* Dedicated Fixed-Height Feedback Slot so card height never jumps */}
           <div
-            className={`rounded-xl border border-[rgba(255,255,255,0.1)] bg-[#191919] text-[#e6e6e4] ${
-              isExpandedView
-                ? 'p-8 sm:p-10 lg:p-12 text-xl sm:text-2xl lg:text-3xl leading-relaxed font-medium'
-                : 'p-6 sm:p-8 text-lg sm:text-xl lg:text-2xl leading-relaxed'
-            }`}
+            className={`shrink-0 rounded-xl border px-4 py-3 transition-colors ${
+              isExpandedView ? 'h-[130px]' : 'h-[104px]'
+            } ${
+              selectedOptionId
+                ? 'border-[rgba(255,255,255,0.14)] bg-[#191919]'
+                : 'border-[rgba(255,255,255,0.06)] bg-[#191919]/50 flex items-center justify-between'
+            } overflow-y-auto stable-scroll`}
           >
-            {promptType === 'summary_en' &&
-              redactTermFromText(currentTerm.calloutEs, currentTerm)}
-            {promptType === 'def_en' &&
-              redactTermFromText(currentTerm.definitionEn, currentTerm)}
-            {promptType === 'explanation_es' &&
-              redactTermFromText(currentTerm.explanationEs, currentTerm)}
+            {selectedOptionId ? (
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span
+                    className={`font-bold ${
+                      isExpandedView ? 'text-sm sm:text-base' : 'text-xs sm:text-sm'
+                    } ${
+                      selectedOptionId === currentTerm.id
+                        ? 'text-[#7fd1a8]'
+                        : 'text-[#f5b482]'
+                    }`}
+                  >
+                    {selectedOptionId === currentTerm.id
+                      ? `Correct — ${currentTerm.term}`
+                      : `Incorrect — The correct term is ${currentTerm.term}`}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsExpandedView(false);
+                      onJumpToTermDoc(currentTerm.id);
+                    }}
+                    className="inline-flex items-center gap-1 text-xs text-[#9b9a97] hover:text-[#e6e6e4] focus:outline-none"
+                  >
+                    <span>Read full entry</span>
+                    <ArrowUpRight className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+                <p
+                  className={`leading-snug text-[#a6b4c0] ${
+                    isExpandedView ? 'text-xs sm:text-sm' : 'text-xs'
+                  }`}
+                >
+                  <strong className="text-[#bfd0de]">Key summary: </strong>
+                  {currentTerm.calloutEs}
+                </p>
+                <p
+                  className={`leading-snug text-[#9b9a97] ${
+                    isExpandedView ? 'text-xs sm:text-sm' : 'text-[11px]'
+                  }`}
+                >
+                  {currentTerm.explanationEs}
+                </p>
+              </div>
+            ) : (
+              <span
+                className={`text-[#9b9a97]/70 ${
+                  isExpandedView ? 'text-sm' : 'text-xs'
+                }`}
+              >
+                Select one of the 4 options on the right (or press keys 1–4) to reveal the answer breakdown.
+              </span>
+            )}
           </div>
         </div>
 
-        {/* 4 Multiple Choice Options (Kahoot-style responsive grid) */}
-        <div
-          className={`grid grid-cols-1 sm:grid-cols-2 ${
-            isExpandedView ? 'gap-4 lg:gap-6' : 'gap-3.5 lg:gap-4'
-          }`}
-        >
+        {/* Right Column: 4 Multiple Choice Options */}
+        <div className="lg:col-span-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-2.5 sm:gap-3 content-between">
           {quizOptions.map((opt, idx) => {
             const isSelected = selectedOptionId === opt.id;
             const isCorrectOption = opt.id === currentTerm.id;
@@ -350,8 +415,8 @@ export default function MemorizeLab({
                 onClick={() => handleSelectQuizOption(opt.id)}
                 className={`flex items-center justify-between rounded-xl border text-left transition-colors focus:outline-none ${
                   isExpandedView
-                    ? 'min-h-[90px] sm:min-h-[112px] p-6 sm:p-8'
-                    : 'min-h-[68px] sm:min-h-[78px] p-4 sm:p-5'
+                    ? 'px-6 py-4 min-h-[78px]'
+                    : 'px-4 py-3 h-[81px]'
                 } ${
                   showSuccess
                     ? 'border-[#7fd1a8] bg-[rgba(15,123,108,0.22)] text-white'
@@ -360,30 +425,30 @@ export default function MemorizeLab({
                     : 'border-[rgba(255,255,255,0.14)] bg-[#191919] text-[#e6e6e4] hover:border-[rgba(255,255,255,0.34)] hover:bg-[#252525]'
                 }`}
               >
-                <div className="flex items-center gap-3.5 min-w-0 pr-3">
+                <div className="flex items-center gap-3 min-w-0 pr-2">
                   <span
                     className={`flex shrink-0 items-center justify-center rounded-lg border border-[rgba(255,255,255,0.14)] bg-[#252525] font-mono font-bold text-[#9b9a97] ${
                       isExpandedView
-                        ? 'h-10 w-10 text-base sm:h-11 sm:w-11 sm:text-lg'
-                        : 'h-7 w-7 text-xs sm:h-8 sm:w-8 sm:text-sm'
+                        ? 'h-10 w-10 text-base sm:text-lg'
+                        : 'h-7 w-7 text-xs sm:text-sm'
                     }`}
                   >
                     {idx + 1}
                   </span>
                   <div className="min-w-0">
                     <span
-                      className={`font-bold ${
+                      className={`font-bold block truncate ${
                         isExpandedView
                           ? 'text-lg sm:text-xl lg:text-2xl'
-                          : 'text-base sm:text-lg'
+                          : 'text-sm sm:text-base'
                       }`}
                     >
                       {opt.term}
                     </span>
                     {opt.acronym && opt.acronym !== opt.term && (
                       <span
-                        className={`ml-2.5 rounded bg-[#252525] px-2 py-0.5 font-mono text-[#9b9a97] ${
-                          isExpandedView ? 'text-xs sm:text-sm' : 'text-xs'
+                        className={`inline-block mt-0.5 rounded bg-[#252525] px-1.5 py-0.2 font-mono text-[#9b9a97] ${
+                          isExpandedView ? 'text-xs' : 'text-[10px]'
                         }`}
                       >
                         {opt.acronym}
@@ -394,14 +459,14 @@ export default function MemorizeLab({
                 {showSuccess && (
                   <CheckCircle2
                     className={`shrink-0 text-[#7fd1a8] ${
-                      isExpandedView ? 'h-7 w-7' : 'h-5 w-5'
+                      isExpandedView ? 'h-6 w-6' : 'h-4 w-4'
                     }`}
                   />
                 )}
                 {showError && (
                   <X
                     className={`shrink-0 text-[#f5b482] ${
-                      isExpandedView ? 'h-7 w-7' : 'h-5 w-5'
+                      isExpandedView ? 'h-6 w-6' : 'h-4 w-4'
                     }`}
                   />
                 )}
@@ -409,63 +474,12 @@ export default function MemorizeLab({
             );
           })}
         </div>
-
-        {/* Instant Answer Breakdown */}
-        {selectedOptionId && (
-          <div
-            className={`rounded-xl border border-[rgba(255,255,255,0.12)] bg-[#191919] space-y-2 ${
-              isExpandedView ? 'p-6 sm:p-7' : 'p-4 sm:p-5'
-            }`}
-          >
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span
-                className={`font-bold ${
-                  isExpandedView ? 'text-base sm:text-lg' : 'text-xs sm:text-sm'
-                } ${
-                  selectedOptionId === currentTerm.id ? 'text-[#7fd1a8]' : 'text-[#f5b482]'
-                }`}
-              >
-                {selectedOptionId === currentTerm.id
-                  ? `Correct — ${currentTerm.term}`
-                  : `Incorrect — The correct term is ${currentTerm.term}`}
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsExpandedView(false);
-                  onJumpToTermDoc(currentTerm.id);
-                }}
-                className={`inline-flex items-center gap-1 text-[#9b9a97] hover:text-[#e6e6e4] focus:outline-none ${
-                  isExpandedView ? 'text-xs sm:text-sm' : 'text-xs'
-                }`}
-              >
-                <span>Read full entry</span>
-                <ArrowUpRight className="h-3.5 w-3.5" />
-              </button>
-            </div>
-            <p
-              className={`leading-relaxed text-[#a6b4c0] ${
-                isExpandedView ? 'text-sm sm:text-base' : 'text-xs sm:text-sm'
-              }`}
-            >
-              <strong className="text-[#bfd0de]">Key summary: </strong>
-              {currentTerm.calloutEs}
-            </p>
-            <p
-              className={`leading-relaxed text-[#9b9a97] ${
-                isExpandedView ? 'text-sm sm:text-base' : 'text-xs sm:text-sm'
-              }`}
-            >
-              {currentTerm.explanationEs}
-            </p>
-          </div>
-        )}
       </div>
 
-      {/* Footer Controls */}
+      {/* Fixed-Position Footer Controls inside Card */}
       <div
-        className={`flex flex-wrap items-center justify-between gap-4 border-t border-[rgba(255,255,255,0.08)] ${
-          isExpandedView ? 'pt-5' : 'pt-4'
+        className={`flex shrink-0 flex-wrap items-center justify-between gap-4 border-t border-[rgba(255,255,255,0.08)] ${
+          isExpandedView ? 'pt-4' : 'pt-3.5'
         }`}
       >
         <span
@@ -492,7 +506,7 @@ export default function MemorizeLab({
           className={`rounded-lg bg-[#e6e6e4] font-semibold text-[#191919] hover:opacity-90 focus:outline-none ${
             isExpandedView
               ? 'px-6 py-3 text-sm sm:text-base'
-              : 'px-5 py-2.5 text-xs sm:text-sm'
+              : 'px-5 py-2 text-xs sm:text-sm'
           }`}
         >
           Next Question →
