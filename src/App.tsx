@@ -84,13 +84,11 @@ export default function App() {
     [masteryMap]
   );
 
-  // Sidebar accordions: Filter by letter & Terms index start closed
+  // Sidebar accordions: Filter by letter & Documentation modules start closed; Terms index starts open
   const [sidebarAzOpen, setSidebarAzOpen] = useState<boolean>(false);
-  const [sidebarCatOpen, setSidebarCatOpen] = useState<boolean>(true);
-  const [openCategoryMenus, setOpenCategoryMenus] = useState<Record<string, boolean>>({
-    finance: true
-  });
-  const [sidebarTermsOpen, setSidebarTermsOpen] = useState<boolean>(false);
+  const [sidebarCatOpen, setSidebarCatOpen] = useState<boolean>(false);
+  const [openCategoryMenus, setOpenCategoryMenus] = useState<Record<string, boolean>>({});
+  const [sidebarTermsOpen, setSidebarTermsOpen] = useState<boolean>(true);
 
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
