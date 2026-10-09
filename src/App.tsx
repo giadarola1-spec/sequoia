@@ -283,9 +283,28 @@ export default function App() {
               setActiveTermId(GLOSSARY_TERMS[0].id);
               setActiveView('docs');
             }}
-            className="text-xs font-bold tracking-wider text-[#e6e6e4] focus:outline-none"
+            className="group flex items-center gap-2 text-[13px] font-bold tracking-[0.14em] text-[#e6e6e4] focus:outline-none"
           >
-            SEQUOIA
+            <span>SEQUOIA</span>
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 20 20"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden="true"
+              className="shrink-0 transition-transform duration-150 group-hover:scale-105"
+            >
+              <defs>
+                <clipPath id="sequoia-logo-clip">
+                  <rect x="2" y="2" width="16" height="16" rx="3.2" />
+                </clipPath>
+              </defs>
+              <g clipPath="url(#sequoia-logo-clip)">
+                <path d="M2 2H16.3L2 16.3V2Z" fill="#e6e6e4" />
+                <path d="M18 18V3.7L3.7 18H18Z" fill="#e6e6e4" fillOpacity="0.35" />
+              </g>
+            </svg>
           </button>
           <button
             onClick={() => setMobileSidebarOpen(false)}
@@ -670,16 +689,18 @@ export default function App() {
         <main
           ref={mainContentRef}
           id="top"
-          className="stable-scroll flex-1 overflow-y-auto px-5 py-8 md:px-12 lg:px-16"
+          className="stable-scroll flex-1 overflow-y-auto px-5 py-6 md:px-10 lg:px-12"
         >
-          <div className="mx-auto max-w-[780px] pb-24">
+          <div className="mx-auto max-w-[1100px] pb-8">
             {activeView === 'memorize' ? (
-              <MemorizeLab
-                filteredTerms={filteredTerms}
-                masteryMap={masteryMap}
-                onUpdateMastery={handleUpdateMastery}
-                onJumpToTermDoc={termId => handleSelectTerm(termId, true)}
-              />
+              <div className="mx-auto max-w-[780px]">
+                <MemorizeLab
+                  filteredTerms={filteredTerms}
+                  masteryMap={masteryMap}
+                  onUpdateMastery={handleUpdateMastery}
+                  onJumpToTermDoc={termId => handleSelectTerm(termId, true)}
+                />
+              </div>
             ) : filteredTerms.length === 0 || !activeTerm ? (
               <div className="rounded-lg border border-[rgba(255,255,255,0.09)] bg-[#202020] p-10 text-center">
                 <h3 className="text-sm font-semibold text-[#e6e6e4]">
@@ -699,21 +720,34 @@ export default function App() {
               </div>
             ) : (
               /* ================= ACTIVE OBJECT / TERM DOCUMENTATION ================= */
-              <article className="space-y-6">
-                {/* Breadcrumbs & Top Metadata */}
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[rgba(255,255,255,0.09)] pb-4">
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-[#9b9a97]">
-                    {activeCategory && (
-                      <span
-                        className={`rounded px-2 py-0.5 text-xs font-medium ${TAG_CLASS_MAP[activeCategory.color]}`}
-                      >
-                        {activeCategory.name}
-                      </span>
-                    )}
-                    <span>/</span>
-                    <span>Section {activeTerm.letter}</span>
-                    <span>/</span>
-                    <span className="tabular-nums">Page {activeTerm.page} (PDF)</span>
+              <article className="space-y-5">
+                {/* Compact Header: Title, Acronym, Breadcrumbs & Copy Button */}
+                <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[rgba(255,255,255,0.09)] pb-4">
+                  <div className="space-y-1.5">
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-[#9b9a97]">
+                      {activeCategory && (
+                        <span
+                          className={`rounded px-2 py-0.5 text-xs font-medium ${TAG_CLASS_MAP[activeCategory.color]}`}
+                        >
+                          {activeCategory.name}
+                        </span>
+                      )}
+                      <span>/</span>
+                      <span>Section {activeTerm.letter}</span>
+                      <span>/</span>
+                      <span className="tabular-nums">Page {activeTerm.page} (PDF)</span>
+                    </div>
+
+                    <div className="flex flex-wrap items-baseline gap-3">
+                      <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-[#e6e6e4]">
+                        {activeTerm.term}
+                      </h1>
+                      {activeTerm.acronym && activeTerm.acronym !== activeTerm.term && (
+                        <code className="rounded border border-[rgba(255,255,255,0.14)] bg-[#252525] px-2 py-0.5 font-mono text-xs font-semibold text-[#e6e6e4]">
+                          {activeTerm.acronym}
+                        </code>
+                      )}
+                    </div>
                   </div>
 
                   <button
@@ -735,140 +769,144 @@ export default function App() {
                   </button>
                 </div>
 
-                {/* Object / Term Name (Documentation H1) */}
-                <div>
-                  <div className="flex flex-wrap items-baseline gap-3">
-                    <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-[#e6e6e4]">
-                      {activeTerm.term}
-                    </h1>
-                    {activeTerm.acronym && activeTerm.acronym !== activeTerm.term && (
-                      <code className="rounded border border-[rgba(255,255,255,0.14)] bg-[#252525] px-2 py-0.5 font-mono text-sm font-semibold text-[#e6e6e4]">
-                        {activeTerm.acronym}
-                      </code>
+                {/* Horizontal 2-Column Layout to Avoid Excessive Vertical Height */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start pt-1">
+                  {/* Left Column: Official Definition, Key Summary (EN) & Explanation (ES) */}
+                  <div className="lg:col-span-7 space-y-4">
+                    <p className="text-base md:text-[16px] leading-relaxed text-[#e6e6e4]">
+                      {formatDefinitionText(activeTerm.definitionEn)}
+                    </p>
+
+                    <div className="space-y-2.5 border-t border-[rgba(255,255,255,0.07)] pt-3.5">
+                      <p className="text-sm md:text-[15px] leading-relaxed text-[#a6b4c0]">
+                        <span className="font-semibold text-[#bfd0de]">Key summary: </span>
+                        {activeTerm.calloutEs}
+                      </p>
+                      <p className="text-sm leading-relaxed text-[#9b9a97]">
+                        {activeTerm.explanationEs}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Right Column: Specifications & Related Terms */}
+                  <div className="lg:col-span-5 space-y-5 lg:border-l lg:border-[rgba(255,255,255,0.08)] lg:pl-7">
+                    {/* Specifications, Technical Details & Examples */}
+                    {activeTerm.details && activeTerm.details.length > 0 && (
+                      <div className="space-y-2">
+                        <h2 className="text-xs font-semibold text-[#9b9a97]">
+                          Specifications, technical details &amp; examples
+                        </h2>
+                        <ul className="list-disc pl-4 space-y-1.5 text-xs md:text-[13px] text-[#e6e6e4]/90">
+                          {activeTerm.details.map((detail, idx) => (
+                            <li key={idx} className="leading-relaxed">
+                              {detail}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* References & Related Terms */}
+                    {activeTerm.relatedTerms && activeTerm.relatedTerms.length > 0 && (
+                      <div className="space-y-2">
+                        <h2 className="text-xs font-semibold text-[#9b9a97]">
+                          References &amp; related terms
+                        </h2>
+                        <div className="flex flex-wrap gap-1.5">
+                          {activeTerm.relatedTerms.map(rel => (
+                            <button
+                              type="button"
+                              key={rel}
+                              onClick={() => handleSelectTerm(rel, true)}
+                              className="inline-flex items-center gap-1 rounded border border-[rgba(255,255,255,0.14)] bg-[#202020] px-2.5 py-1 text-xs font-medium text-[#e6e6e4] hover:bg-[rgba(255,255,255,0.08)] transition-colors focus:outline-none"
+                            >
+                              <span>{rel}</span>
+                              <ArrowUpRight className="h-3 w-3 text-[#9b9a97]" />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     )}
                   </div>
-                </div>
-
-                {/* 1. Official Definition directly below the heading (No box) */}
-                <div className="space-y-4 pt-1">
-                  <p className="text-base md:text-[17px] leading-relaxed text-[#e6e6e4]">
-                    {formatDefinitionText(activeTerm.definitionEn)}
-                  </p>
-
-                  {/* 2. Key Summary (EN) & Explanation (ES) below (No box, distinct text color) */}
-                  <div className="space-y-2 pt-2">
-                    <p className="text-sm md:text-[15px] leading-relaxed text-[#a6b4c0]">
-                      <span className="font-semibold text-[#bfd0de]">Key summary: </span>
-                      {activeTerm.calloutEs}
-                    </p>
-                    <p className="text-sm leading-relaxed text-[#9b9a97]">
-                      {activeTerm.explanationEs}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Specifications, Technical Details & Examples (No accordion) */}
-                {activeTerm.details && activeTerm.details.length > 0 && (
-                  <div className="pt-2 space-y-2.5">
-                    <h2 className="text-xs font-semibold text-[#9b9a97]">
-                      Specifications, technical details &amp; examples
-                    </h2>
-                    <ul className="list-disc pl-5 space-y-2 text-sm text-[#e6e6e4]/90">
-                      {activeTerm.details.map((detail, idx) => (
-                        <li key={idx} className="leading-relaxed">
-                          {detail}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* References & Related Terms (No accordion) */}
-                {activeTerm.relatedTerms && activeTerm.relatedTerms.length > 0 && (
-                  <div className="pt-2 space-y-2.5">
-                    <h2 className="text-xs font-semibold text-[#9b9a97]">
-                      References &amp; related terms
-                    </h2>
-                    <div className="flex flex-wrap gap-2">
-                      {activeTerm.relatedTerms.map(rel => (
-                        <button
-                          type="button"
-                          key={rel}
-                          onClick={() => handleSelectTerm(rel, true)}
-                          className="inline-flex items-center gap-1.5 rounded border border-[rgba(255,255,255,0.14)] bg-[#202020] px-3 py-1.5 text-xs font-medium text-[#e6e6e4] hover:bg-[rgba(255,255,255,0.08)] transition-colors focus:outline-none"
-                        >
-                          <span>{rel}</span>
-                          <ArrowUpRight className="h-3 w-3 text-[#9b9a97]" />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* ================= PREVIOUS / NEXT NAVIGATION BUTTONS ================= */}
-                <div className="mt-10 pt-6 border-t border-[rgba(255,255,255,0.09)] grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {prevTerm ? (
-                    <button
-                      type="button"
-                      onClick={() => setActiveTermId(prevTerm.id)}
-                      className="group flex flex-col items-start justify-between rounded-lg border border-[rgba(255,255,255,0.12)] bg-[#202020] p-4 text-left hover:border-[rgba(255,255,255,0.28)] hover:bg-[#252525] transition-colors focus:outline-none"
-                    >
-                      <span className="flex items-center gap-1 text-xs font-medium text-[#9b9a97] group-hover:text-[#e6e6e4] transition-colors">
-                        <ChevronLeft className="h-3.5 w-3.5 transition-transform duration-150 group-hover:-translate-x-0.5" />
-                        <span>Previous</span>
-                      </span>
-                      <span className="mt-1.5 text-base font-bold text-[#e6e6e4]">
-                        {prevTerm.term}
-                      </span>
-                      <span className="mt-0.5 text-[11px] text-[#9b9a97]">
-                        {CATEGORIES[prevTerm.category]?.shortName} · Page {prevTerm.page}
-                      </span>
-                    </button>
-                  ) : (
-                    <div className="rounded-lg border border-[rgba(255,255,255,0.05)] bg-[#1c1c1c]/50 p-4 opacity-40 select-none">
-                      <span className="flex items-center gap-1 text-xs text-[#9b9a97]">
-                        <ChevronLeft className="h-3.5 w-3.5" />
-                        <span>Previous</span>
-                      </span>
-                      <span className="mt-1.5 block text-sm text-[#9b9a97]">
-                        Start of documentation
-                      </span>
-                    </div>
-                  )}
-
-                  {nextTerm ? (
-                    <button
-                      type="button"
-                      onClick={() => setActiveTermId(nextTerm.id)}
-                      className="group flex flex-col items-end justify-between rounded-lg border border-[rgba(255,255,255,0.12)] bg-[#202020] p-4 text-right hover:border-[rgba(255,255,255,0.28)] hover:bg-[#252525] transition-colors focus:outline-none"
-                    >
-                      <span className="flex items-center gap-1 text-xs font-medium text-[#9b9a97] group-hover:text-[#e6e6e4] transition-colors">
-                        <span>Next</span>
-                        <ChevronRight className="h-3.5 w-3.5 transition-transform duration-150 group-hover:translate-x-0.5" />
-                      </span>
-                      <span className="mt-1.5 text-base font-bold text-[#e6e6e4]">
-                        {nextTerm.term}
-                      </span>
-                      <span className="mt-0.5 text-[11px] text-[#9b9a97]">
-                        {CATEGORIES[nextTerm.category]?.shortName} · Page {nextTerm.page}
-                      </span>
-                    </button>
-                  ) : (
-                    <div className="rounded-lg border border-[rgba(255,255,255,0.05)] bg-[#1c1c1c]/50 p-4 text-right opacity-40 select-none">
-                      <span className="flex items-center justify-end gap-1 text-xs text-[#9b9a97]">
-                        <span>Next</span>
-                        <ChevronRight className="h-3.5 w-3.5" />
-                      </span>
-                      <span className="mt-1.5 block text-sm text-[#9b9a97]">
-                        End of documentation
-                      </span>
-                    </div>
-                  )}
                 </div>
               </article>
             )}
           </div>
         </main>
+
+        {/* ================= FIXED BOTTOM PREVIOUS / NEXT NAVIGATION BAR ================= */}
+        {activeView === 'docs' && filteredTerms.length > 0 && activeTerm && (
+          <footer className="shrink-0 border-t border-[rgba(255,255,255,0.09)] bg-[#191919] px-5 py-2.5 md:px-10 lg:px-12">
+            <div className="mx-auto flex max-w-[1100px] items-center justify-between gap-4">
+              {prevTerm ? (
+                <button
+                  type="button"
+                  onClick={() => setActiveTermId(prevTerm.id)}
+                  className="group flex min-w-0 flex-1 max-w-[340px] items-center gap-3 rounded-lg border border-[rgba(255,255,255,0.12)] bg-[#202020] px-3.5 py-2 text-left hover:border-[rgba(255,255,255,0.28)] hover:bg-[#252525] transition-colors focus:outline-none"
+                >
+                  <ChevronLeft className="h-4 w-4 shrink-0 text-[#9b9a97] group-hover:text-[#e6e6e4] transition-transform duration-150 group-hover:-translate-x-0.5" />
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[10px] font-medium uppercase tracking-wider text-[#9b9a97]">
+                      Previous
+                    </div>
+                    <div className="truncate text-xs md:text-sm font-bold text-[#e6e6e4]">
+                      {prevTerm.term}
+                    </div>
+                  </div>
+                </button>
+              ) : (
+                <div className="flex min-w-0 flex-1 max-w-[340px] items-center gap-3 rounded-lg border border-[rgba(255,255,255,0.05)] bg-[#1c1c1c]/40 px-3.5 py-2 opacity-40 select-none">
+                  <ChevronLeft className="h-4 w-4 shrink-0 text-[#9b9a97]" />
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[10px] font-medium uppercase tracking-wider text-[#9b9a97]">
+                      Previous
+                    </div>
+                    <div className="truncate text-xs text-[#9b9a97]">
+                      Start of documentation
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="hidden sm:flex flex-col items-center text-[11px] text-[#9b9a97] tabular-nums shrink-0">
+                <span>
+                  {currentIndex + 1} / {filteredTerms.length}
+                </span>
+                <span className="text-[10px] text-[#9b9a97]/60">Use ← → keys</span>
+              </div>
+
+              {nextTerm ? (
+                <button
+                  type="button"
+                  onClick={() => setActiveTermId(nextTerm.id)}
+                  className="group flex min-w-0 flex-1 max-w-[340px] items-center justify-end gap-3 rounded-lg border border-[rgba(255,255,255,0.12)] bg-[#202020] px-3.5 py-2 text-right hover:border-[rgba(255,255,255,0.28)] hover:bg-[#252525] transition-colors focus:outline-none"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[10px] font-medium uppercase tracking-wider text-[#9b9a97]">
+                      Next
+                    </div>
+                    <div className="truncate text-xs md:text-sm font-bold text-[#e6e6e4]">
+                      {nextTerm.term}
+                    </div>
+                  </div>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-[#9b9a97] group-hover:text-[#e6e6e4] transition-transform duration-150 group-hover:translate-x-0.5" />
+                </button>
+              ) : (
+                <div className="flex min-w-0 flex-1 max-w-[340px] items-center justify-end gap-3 rounded-lg border border-[rgba(255,255,255,0.05)] bg-[#1c1c1c]/40 px-3.5 py-2 text-right opacity-40 select-none">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[10px] font-medium uppercase tracking-wider text-[#9b9a97]">
+                      Next
+                    </div>
+                    <div className="truncate text-xs text-[#9b9a97]">
+                      End of documentation
+                    </div>
+                  </div>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-[#9b9a97]" />
+                </div>
+              )}
+            </div>
+          </footer>
+        )}
       </div>
 
       {/* ================= QUICK SEARCH MODAL (CTRL+K) ================= */}
